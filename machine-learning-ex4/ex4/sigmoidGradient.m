@@ -14,8 +14,8 @@ g = zeros(size(z));
 
 
 
-
-
+% 注意，这里是逐个计算，所以使用点乘
+g = sigmoid(z) .* (1-sigmoid(z));
 
 
 
