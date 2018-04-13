@@ -63,10 +63,13 @@ Theta2_grad = zeros(size(Theta2));
 %
 
 % 将数据放到最右边计算时候需要反转，维度变为 (n+1)*m
-A_1 = sigmoid(Theta1 * [ones(1, m); X']);
-A_1 = [ones(1, m); A_1];
-A_2 = sigmoid(Theta2 * A_1);
-h_theta = A_2;
+A_1 = [ones(1,m); X'];
+Z_2 = Theta1 * A_1;
+A_2 = [ones(1,m); sigmoid(Z_2)];
+
+Z_3 = Theta2 * A_2;
+A_3 = sigmoid(Z_3);
+h_theta = A_3;
 
 % 这里和logestic不一样，会得到一系列的判定y的标准答案，这里使用y_vector(y(i))=1的方法得到
 % 就是表示当前向量只有判定为1的才是有效数据，别的都是0
@@ -92,13 +95,29 @@ regularized_v += sum(sum(theta2_no_bias .* theta2_no_bias));
 regularized_v *= lambda / (2*m);
 J += regularized_v;
 
-X = [ones(m, 1) X];
+% 计算偏导数
+for i = 1:m
+    y_vector = zeros(num_labels, 1);
+    y_vector(y(i)) = 1;
 
+    % 初始化
+    theta_3 = h_theta(:,i) - y_vector;
 
+    % 反向计算error。@note Theta2转置的维度是(s_2+1) * s_3，所以计算得到的
+    % 前一层数据包含了无效用偏移节点，为让维度匹配，中间结果就去掉了偏移数据
+    theta_2 = (Theta2' * theta_3)(2:end) .* sigmoidGradient(Z_2(:,i));
 
+    % 这里维度刚好是匹配的，注意A的维度是包含偏移节点的，所以结果维度是s_3 * (s_2+1)
+    Theta2_grad += theta_3 * A_2(:,i)';
+    Theta1_grad += theta_2 * A_1(:,i)';
+end
 
+Theta1_grad /= m;
+Theta2_grad /= m;
 
-
+# add regularized para @note 同样注意，规约的时候不需要考虑theta的第一列数据
+Theta1_grad += [zeros(size(Theta1, 1), 1), Theta1(:, 2:end)] * lambda / m;
+Theta2_grad += [zeros(size(Theta2, 1), 1), Theta2(:, 2:end)] * lambda / m;
 % -------------------------------------------------------------
 
 % =========================================================================
